@@ -1,6 +1,7 @@
 require_relative 'color'
 require_relative 'game'
 require 'pry'
+require 'msgpack'
 
 REPLAY_PATTERN = /\b(?:y|n|load)\b/
 play_game = true

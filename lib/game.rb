@@ -1,3 +1,7 @@
+# TODO: write the game save load method
+# list save files with this:
+# saves = Dir.entries('./saves').select { |f| File.file?("./saves/#{f}") }
+
 class Game
   GUESS_PATTERN = /\b[a-zA-Z]\b|\bsave\b/
   @secret_array = []
@@ -12,6 +16,26 @@ class Game
     @incorrect_guesses = 10
   end
 
+  def self.save
+    save = {
+      'secret_array' => @secret_array,
+      'progress' => @progress
+    }.to_msgpack
+    print 'Please enter a name for your save: '
+    save_name = gets.chomp
+    save_file = File.open("./saves/#{save_name}.save", 'w')
+    save_file.print save
+    save_file.close
+    exit
+  end
+
+  def self.load
+    puts 'Choose your save file:'
+
+
+
+  end
+
   def self.game_loop(secret_word)
     Game.reset(secret_word)
     guesses = []
@@ -20,7 +44,9 @@ class Game
     while @incorrect_guesses > 0
       guess = Game.input_guess(guesses)
       # guesses << (correct?(guess) ? guess.green : guess.gray)
-      if correct?(guess)
+      if guess == 'save'
+        Game.save
+      elsif correct?(guess)
         guesses << guess.green
         Game.add_guesses(guess)
       else
