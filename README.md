@@ -1,11 +1,11 @@
 # Hangman
-Created as part of The Odin Project curriculum.
+Created as part of [The Odin Project](https://www.theodinproject.com) curriculum.
 
 View on [Github](https://github.com/harmolipi/hangman)
 
 ### Functionality
 
-This is a basic hangman game, with the ability to save and load game progress.
+This is the [hangman](https://www.theodinproject.com/courses/ruby-programming/lessons/file-i-o-and-serialization-ruby-programming) project - a basic hangman game, with the ability to save and load game progress.
 
 ### Thoughts
 
