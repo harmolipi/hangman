@@ -1,98 +1,86 @@
-# TODO: write the game save load method
-# list save files with this:
-# saves = Dir.entries('./saves').select { |f| File.file?("./saves/#{f}") }
+# frozen_string_literal: true
 
+# main game functions
 class Game
-  GUESS_PATTERN = /\b[a-zA-Z]\b|\bsave\b/
   @secret_array = []
   @correct_guesses = []
-  @progress = []
   @incorrect_guesses = 10
+  @guesses = []
 
   def self.reset(secret_word)
     @correct_guesses = Array.new(secret_word.length, '_')
-    @progress = []
     @secret_array = secret_word.split('')
     @incorrect_guesses = 10
+    @guesses = []
   end
 
-  def self.save
+  def self.load_variables(save_variables)
+    @secret_array = save_variables['secret_array']
+    @correct_guesses = save_variables['correct_guesses']
+    @incorrect_guesses = save_variables['incorrect_guesses']
+    @guesses = save_variables['guesses']
+  end
+
+  def self.save(secret_word)
     save = {
+      'secret_word' => secret_word,
       'secret_array' => @secret_array,
-      'progress' => @progress
+      'correct_guesses' => @correct_guesses,
+      'progress' => @progress,
+      'incorrect_guesses' => @incorrect_guesses,
+      'guesses' => @guesses
     }.to_msgpack
     print 'Please enter a name for your save: '
     save_name = gets.chomp
-    save_file = File.open("./saves/#{save_name}.save", 'w')
+    save_file = File.open("./saves/#{save_name}", 'w')
     save_file.print save
     save_file.close
     exit
   end
 
-  def self.load
-    puts 'Choose your save file:'
-
-
-
-  end
-
-  def self.game_loop(secret_word)
-    Game.reset(secret_word)
-    guesses = []
-    puts secret_word
-    Game.display(guesses)
-    while @incorrect_guesses > 0
-      guess = Game.input_guess(guesses)
-      # guesses << (correct?(guess) ? guess.green : guess.gray)
-      if guess == 'save'
-        Game.save
-      elsif correct?(guess)
-        guesses << guess.green
-        Game.add_guesses(guess)
-      else
-        guesses << guess.magenta
-        @incorrect_guesses -= 1
-      end
-      Game.display(guesses)
-      won = Game.won?(secret_word)
-      break if won
-      # guesses << input_guess(guesses)
+  def self.load(secret_word)
+    saves = Dir.entries('./saves').select { |f| File.file?("./saves/#{f}") }
+    if saves.empty?
+      puts "Sorry, no game saves available. Starting a new game...\n".green
+      Game.game_loop(secret_word, false)
+      return nil
+    else
+      puts 'Choose your save file:'
+      saves.each { |f| puts f.yellow }
     end
-    puts Game.ending(won, secret_word)
-  end
-
-  def self.input_guess(guesses)
     begin
-      print "Enter a letter, or type 'save' to save your progress: "
-      guess = gets.chomp.downcase
-      raise 'Invalid guess, please try again.' unless guess.match?(GUESS_PATTERN)
-      raise 'You already guessed that letter!' if guesses.include?(guess.green) || guesses.include?(guess.magenta)
-    rescue StandardError => e
-      puts e.to_s.red
-      Game.display(guesses)
+      print "\nWhich would you like to load? "
+      load_save = gets.chomp
+      raise unless saves.include?(load_save)
+    rescue StandardError
+      puts 'Invalid entry, please try again.'.red
       retry
     end
-    guess
+    load_file = File.open("./saves/#{load_save}")
+    save_variables = MessagePack.unpack(load_file)
+    Game.load_variables(save_variables)
+    Game.game_loop(save_variables['secret_word'], true)
   end
 
-  def self.display(guesses)
-    puts "#{@incorrect_guesses} incorrect guesses left."
-    puts ''
-    puts "#{Game.display_guesses(guesses)}"
-    puts ''
-    puts "#{Game.display_word}\n"
-    puts ''
-  end
-
-  def self.display_word
-    @progress = @correct_guesses.map do |letter|
-      letter.nil? ? '_' : letter
+  def self.game_loop(secret_word, loading)
+    Game.reset(secret_word) unless loading
+    Text.display(@incorrect_guesses, @guesses, @correct_guesses)
+    while @incorrect_guesses.positive?
+      guess = Text.input_guess(@guesses, @incorrect_guesses, @correct_guesses)
+      if guess == 'save'
+        Game.save(secret_word)
+      elsif Logic.correct?(@secret_array, guess)
+        @guesses << guess.green
+        Game.add_guesses(guess)
+      else
+        @guesses << guess.magenta
+        @incorrect_guesses -= 1
+      end
+      Text.display(@incorrect_guesses, @guesses, @correct_guesses)
+      won = Logic.won?(@correct_guesses, secret_word)
+      break if won
     end
-    print @progress.join(' ')
-  end
-
-  def self.display_guesses(guesses)
-    print guesses.join(' ')
+    puts Text.ending(won, secret_word)
   end
 
   def self.add_guesses(guess)
@@ -101,23 +89,6 @@ class Game
         @correct_guesses[index] = guess
         @secret_array[index] = nil
       end
-    end
-  end
-
-  def self.correct?(guess)
-    @secret_array.include?(guess)
-  end
-
-  def self.won?(secret_word)
-    # binding.pry
-    @correct_guesses.eql?(secret_word.split(''))
-  end
-
-  def self.ending(won, secret_word)
-    if won
-      "Well done, old chap! You've done it again!\n".green
-    else
-      "So sorry, old sport - you've failed! The word was '#{secret_word}'.\n".blue
     end
   end
 end
