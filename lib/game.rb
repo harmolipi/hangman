@@ -32,6 +32,7 @@ class Game
     }.to_msgpack
     print 'Please enter a name for your save: '
     save_name = gets.chomp
+    Dir.mkdir('./saves') unless Dir.exist?('./saves')
     save_file = File.open("./saves/#{save_name}", 'w')
     save_file.print save
     save_file.close
